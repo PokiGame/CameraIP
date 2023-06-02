@@ -29,14 +29,13 @@ try:
                 img = Image.fromarray(frame_rgb)
                 img_tk = ImageTk.PhotoImage(img)
                 # Оновлення відображення відео
-                #label.pack()
-                #label = tk.Label(window, highlightthickness=0)
+                label.pack()
                 label.config(image=img_tk)
                 label.image = img_tk
             else:
                 is_connected = False
                 window.title("Очікування з'єднання...")
-                #label.pack_forget()
+                label.pack_forget()
 
 
 
