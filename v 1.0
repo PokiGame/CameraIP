@@ -1,0 +1,85 @@
+import cv2
+import tkinter as tk
+from tkinter import messagebox
+from PIL import Image, ImageTk
+import threading
+
+
+try:
+    # Замініть 'IP_ADDRESS' на IP-адресу вашого Android-пристрою
+    url = 'http://192.168.0.110:8080/video'
+
+    cap = None
+    is_connected = False
+
+    def connect():
+        global cap, is_connected
+        cap = cv2.VideoCapture(url)
+        is_connected = cap.isOpened()
+
+    def update_frame(window):
+        global cap, is_connected
+        if is_connected:
+            ret, frame = cap.read()
+            if ret:
+                window.title("Відео з телефону")
+                # Конвертування кольорового простору з BGR на RGB
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                # Конвертування зображення в формат, зрозумілий для tkinter
+                img = Image.fromarray(frame_rgb)
+                img_tk = ImageTk.PhotoImage(img)
+                # Оновлення відображення відео
+                #label.pack()
+                #label = tk.Label(window, highlightthickness=0)
+                label.config(image=img_tk)
+                label.image = img_tk
+            else:
+                is_connected = False
+                window.title("Очікування з'єднання...")
+                #label.pack_forget()
+
+
+
+
+    def update_video(window):
+        while True:
+            if not is_connected:
+                connect()
+            else:
+                update_frame(window)
+
+    def start_video():
+        global cap, is_connected
+        connect()
+
+        # Створення вікна tkinter
+        window = tk.Tk()
+        window.title("Відео з телефону")
+        window.configure(bg='black')
+        window.resizable(False, False)
+
+        # Створення мітки для відображення відео
+        global label
+        label = tk.Label(window)
+        label.config(borderwidth=0, relief="flat")
+        label.pack()
+
+
+
+        # Запуск потоку для оновлення відео
+        video_thread = threading.Thread(target=update_video, args=(window,))
+        video_thread.daemon = True
+        video_thread.start()
+
+        try:
+            window.mainloop()
+        except KeyboardInterrupt:
+            pass
+
+    start_video()
+
+    if cap is not None:
+        cap.release()
+    cv2.destroyAllWindows()
+except Exception as ex:
+    messagebox.showinfo("Помилка", ex)
