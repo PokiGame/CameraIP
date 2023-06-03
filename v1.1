@@ -1,0 +1,126 @@
+import cv2
+import tkinter as tk
+import requests
+from tkinter import messagebox
+from PIL import Image, ImageTk
+import threading
+import time
+
+def check_url(url):
+    try:
+        response = requests.get(url, stream=True)
+        return True
+    except:
+        return False
+
+def connect():
+    global cap, is_connected
+    if check_url(url):
+        cap = cv2.VideoCapture(url)
+        is_connected = cap.isOpened()
+    else:
+        label.pack_forget()
+        button.pack(side="right")
+        is_connected = False
+
+
+def update_frame():
+    global cap, is_connected
+    if is_connected:
+        ret, frame = cap.read()
+        if ret:
+            window.title("Відео з телефону")
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            img = Image.fromarray(frame_rgb)
+            img_tk = ImageTk.PhotoImage(img)
+            window.geometry(f"{img.width}x{img.height}")
+            label.pack()
+            label.config(image=img_tk, borderwidth=0)
+            label.image = img_tk
+            button.pack_forget()
+            button1.pack_forget()
+            button2.pack_forget()
+            entry.pack_forget()
+            label1.pack_forget()
+
+        else:
+            is_connected = False
+            window.title("Введіть URL")
+            label1["text"] = "Введіть URL відео:"
+            label1.pack(side="top")
+            entry.pack(side="top")
+            window.geometry('250x70')
+            button1.pack(side="left", padx=5)
+            button2.pack(side="left")
+            label.pack_forget()
+
+def update_video():
+    while True:
+        if not is_connected:
+            connect()
+            break
+        else:
+            update_frame()
+
+def start_video():
+    global cap, is_connected, url
+    url = entry.get()
+    url = url + "/video"
+    connect()
+
+    button.pack_forget()
+    label.pack()
+
+    video_thread = threading.Thread(target=update_video)
+    video_thread.daemon = True
+    video_thread.start()
+
+def paste_from_clipboard():
+    clipboard_content = window.clipboard_get()
+    entry.delete(0, tk.END)
+    entry.insert(tk.END, clipboard_content)
+
+def clean():
+    entry.delete(0, tk.END)
+
+try:
+    cap = None
+    is_connected = False
+
+    window = tk.Tk()
+    window.title("Введіть URL")
+    window.geometry('250x70')
+    window.resizable(False, False)
+
+
+    label = tk.Label(window)
+    #label.pack()
+
+    label1 = tk.Label(window, text="Введіть URL відео:")
+    label1.pack(side="top")
+
+    entry = tk.Entry(window, width=30)
+    entry.pack(side="top")
+
+
+
+    button = tk.Button(window, text="Старт", command=start_video, width=10)
+    button.pack(side="right")
+
+    button2 = tk.Button(window, text="Очистити", command=clean, width=10)
+    button2.pack(side="left")
+
+    button1 = tk.Button(window, text="Вставити", command=paste_from_clipboard, width=10)
+    button1.pack(side="left", padx=5)
+
+    try:
+        window.mainloop()
+    except:
+        pass
+
+    if cap is not None:
+        cap.release()
+    cv2.destroyAllWindows()
+
+except Exception as ex:
+    messagebox.showinfo("Помилка", ex)
